@@ -2,20 +2,19 @@
 
 # 🚗 Personalized Driving Partner : **차비스**  
 
-**실시간으로 대화가 가능한 대화형 네비게이션**입니다.  
-길을 안내하며 주변 핫플레이스 추천, 사용자 발화 감정분석을 통한 감정 컨트롤 기능, 실시간 운전 피드백 기능을 제공합니다.
+We aim to develop a **real-time interactive navigation system** that helps drivers control their emotions. It has the basic function of navigation, which is to provide directions, and additionally provides emotion control through emotion analysis of user speech.
 
-> **운전할 때 옆 사람이 말 걸어주고 길 찾고, 어디 갈지 찾고, 화나거나 흥분했을 때 공감해주고 진정시키는 것을 AI가 도와드립니다.**  
+> **AI can talk to you like the person next to you when you're driving, help you find your way, empathize with you when you're angry or upset, and calm you down**  
 
 ---
 
-## 🛠️ **기능 소개**  
+## 🛠️ **Feature Introduction**  
 
-### 1. 기본 대화 및 길찾기 기능  
-- **기본 대화 기능** 제공  
-- **네비게이션과 동일한 길찾기 기능** 제공  
+### 1. Basic conversations and directions 
+- Provides **basic conversation functionality**
+- Provides **the same directions functionality as navigation** 
 
-### 2. 실시간 데이터 수집 및 분석  
+### 2. Real-time data collection and analysis  
 - **SK 네트워크**를 활용해 **교통, 날씨, 지역 이벤트 정보를 실시간으로 수집 및 분석**  
 - 특정 지역이나 이벤트, 맛집에 대한 **평가 및 리뷰 요약 제공**  
     - **예시**:  
