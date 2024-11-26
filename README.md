@@ -1,6 +1,6 @@
 # AI-Project-Temp
 
-# 🚗 Personalized Drive Partner : **차비스**  
+# 🚗 Personalized Driving Partner : **차비스**  
 
 **실시간으로 대화가 가능한 대화형 네비게이션**입니다.  
 길을 안내하며 주변 핫플레이스 추천, 사용자 발화 감정분석을 통한 감정 컨트롤 기능, 실시간 운전 피드백 기능을 제공합니다.
