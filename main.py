@@ -276,7 +276,8 @@ async def analyze_request(request: Request):
     classify_result = classify_chain.predict(question=user_text)
 
     if classify_result.upper() == "ROUTE":
-        additional_info = "Route-related logic here."
+        #내비 로직
+        additional_info = "Route-related logic here." # 여기 들어갈 부분이 gpt에 바로 반영될 예정입니다  + 현재위치, 현재 날짜 시간
     elif classify_result.lower() != "false":
         search_keywords = classify_result.split(",")
         search_query = " ".join(search_keywords)
