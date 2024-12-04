@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Real-Time Navigation</title>
-  <script src="https://maps.googleapis.com/maps/api/js?key=(redacted)&libraries=places"></script>
+  <title>Turn-by-Turn Navigation with POI Search</title>
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
   <style>
     body, html {
       margin: 0;
@@ -12,20 +12,19 @@
       height: 100%;
     }
     #map {
-      height: 85%;
+      height: 65%;
       width: 100%;
     }
     #controls {
-      height: 15%;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: #f8f8f8;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      flex-direction: column;
       padding: 10px;
     }
+    #route-search, #poi-search {
+      margin-bottom: 10px;
+    }
     input, button {
-      margin: 0 10px;
+      margin: 5px 0;
       padding: 10px;
       font-size: 14px;
     }
@@ -39,46 +38,52 @@
       background-color: #0056b3;
     }
     #instructions {
+      margin-top: 10px;
       padding: 10px;
-      font-size: 14px;
-      max-height: 100px;
+      max-height: 150px;
       overflow-y: auto;
-      background: #fff;
       border: 1px solid #ddd;
-      margin-top: 5px;
+      background: #fff;
     }
   </style>
 </head>
 <body>
 <div id="controls">
-  <input id="start" type="text" placeholder="Enter start location">
-  <input id="end" type="text" placeholder="Enter destination">
-  <button onclick="startNavigation()">Start Navigation</button>
+  <!-- Route Search -->
+  <div id="route-search">
+    <input id="start" type="text" placeholder="Enter start location">
+    <input id="end" type="text" placeholder="Enter destination">
+    <button onclick="startNavigation()">Start Navigation</button>
+  </div>
+
+  <!-- POI Search -->
+  <div id="poi-search">
+    <input id="keyword" type="text" placeholder="Search for places (e.g., restaurants)">
+    <button onclick="searchPOI()">Search POI</button>
+  </div>
+
+  <!-- Instructions -->
+  <div id="instructions"></div>
 </div>
 <div id="map"></div>
-<div id="instructions"></div>
 
 <script>
-  let map, directionsService, directionsRenderer, currentPositionMarker;
-  let navigationInterval;
+  let map, directionsService, directionsRenderer, placesService;
   let steps = [];
   let currentStepIndex = 0;
 
-  // Initialize map
+  // Initialize the map
   function initMap() {
     map = new google.maps.Map(document.getElementById("map"), {
-      center: { lat: 37.7749, lng: -122.4194 }, // Default center
+      center: { lat: 37.7749, lng: -122.4194 }, // Default: San Francisco
       zoom: 14,
     });
 
     directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
+    directionsRenderer = new google.maps.DirectionsRenderer();
+    directionsRenderer.setMap(map);
 
-    // Autocomplete for start and end inputs
-    const startInput = document.getElementById("start");
-    const endInput = document.getElementById("end");
-    const startAutocomplete = new google.maps.places.Autocomplete(startInput);
-    const endAutocomplete = new google.maps.places.Autocomplete(endInput);
+    placesService = new google.maps.places.PlacesService(map);
   }
 
   // Start navigation
@@ -91,7 +96,6 @@
       return;
     }
 
-    // Get directions
     const request = {
       origin: start,
       destination: end,
@@ -102,54 +106,57 @@
       if (status === google.maps.DirectionsStatus.OK) {
         directionsRenderer.setDirections(result);
         steps = result.routes[0].legs[0].steps;
-        displayInstructions(steps);
-
-        // Start real-time tracking
-        if (navigationInterval) clearInterval(navigationInterval);
-        navigationInterval = setInterval(trackLocation, 5000); // Update every 5 seconds
+        displayTurnByTurnInstructions();
       } else {
         alert("Could not calculate route: " + status);
       }
     });
   }
 
-  // Display instructions
-  function displayInstructions(steps) {
+  // Display turn-by-turn instructions
+  function displayTurnByTurnInstructions() {
     const instructionsDiv = document.getElementById("instructions");
     instructionsDiv.innerHTML = "";
+
     steps.forEach((step, index) => {
       instructionsDiv.innerHTML += `<p><strong>Step ${index + 1}:</strong> ${step.instructions} (${step.distance.text})</p>`;
     });
+
+    // Optionally, start real-time updates for turn-by-turn
+    currentStepIndex = 0;
+    trackRealTimeTurns();
   }
 
-  // Track user's current location
-  function trackLocation() {
+  // Track user's position and update turn-by-turn instructions
+  function trackRealTimeTurns() {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
+      navigator.geolocation.watchPosition(
         (position) => {
           const userLocation = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           };
 
-          // Update marker
-          if (currentPositionMarker) {
-            currentPositionMarker.setPosition(userLocation);
-          } else {
-            currentPositionMarker = new google.maps.Marker({
-              position: userLocation,
-              map: map,
-              title: "You are here",
-              icon: {
-                url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-              },
-            });
-          }
-
           map.panTo(userLocation);
 
-          // Check if the user is near the next step
-          checkProximity(userLocation);
+          if (currentStepIndex < steps.length) {
+            const nextStep = steps[currentStepIndex];
+            const stepLocation = nextStep.start_location;
+
+            const distanceToNextStep = calculateDistance(
+              userLocation.lat,
+              userLocation.lng,
+              stepLocation.lat(),
+              stepLocation.lng()
+            );
+
+            if (distanceToNextStep < 50) {
+              alert(`Turn-by-turn: ${nextStep.instructions}`);
+              currentStepIndex++;
+            }
+          } else {
+            alert("You have reached your destination!");
+          }
         },
         (error) => {
           console.error("Error getting location: ", error);
@@ -160,31 +167,7 @@
     }
   }
 
-  // Check proximity to next step
-  function checkProximity(userLocation) {
-    if (currentStepIndex >= steps.length) {
-      clearInterval(navigationInterval);
-      alert("You have reached your destination!");
-      return;
-    }
-
-    const step = steps[currentStepIndex];
-    const stepLocation = step.start_location;
-
-    const distance = calculateDistance(
-      userLocation.lat,
-      userLocation.lng,
-      stepLocation.lat(),
-      stepLocation.lng()
-    );
-
-    if (distance < 50) { // If user is within 50 meters of the step
-      alert(`Upcoming: ${step.instructions}`);
-      currentStepIndex++;
-    }
-  }
-
-  // Calculate distance between two points (Haversine formula)
+  // Calculate distance between two points
   function calculateDistance(lat1, lng1, lat2, lng2) {
     const R = 6371e3; // Earth's radius in meters
     const φ1 = (lat1 * Math.PI) / 180;
@@ -200,7 +183,44 @@
     return R * c; // Distance in meters
   }
 
-  // Initialize map on window load
+  // Search for POI
+  function searchPOI() {
+    const keyword = document.getElementById("keyword").value;
+    if (!keyword) {
+      alert("Please enter a keyword to search.");
+      return;
+    }
+
+    const request = {
+      location: map.getCenter(),
+      radius: 5000, // Search within 5km
+      keyword: keyword,
+    };
+
+    placesService.nearbySearch(request, (results, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK) {
+        results.forEach((place) => {
+          const marker = new google.maps.Marker({
+            position: place.geometry.location,
+            map: map,
+            title: place.name,
+          });
+
+          const infoWindow = new google.maps.InfoWindow({
+            content: `<strong>${place.name}</strong><br>${place.vicinity}`,
+          });
+
+          marker.addListener("click", () => {
+            infoWindow.open(map, marker);
+          });
+        });
+      } else {
+        alert("Could not find POIs: " + status);
+      }
+    });
+  }
+
+  // Initialize the map on window load
   window.onload = initMap;
 </script>
 </body>
