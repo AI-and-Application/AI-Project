@@ -19,6 +19,11 @@ import logging
 from typing import Optional
 from langchain.chains import LLMChain
 import logging
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
+from datetime import datetime
+import pytz  # For timezone handling
+from geopy.geocoders import Nominatim
 logger = logging.getLogger(__name__)
 
 
@@ -70,7 +75,7 @@ class MyLitModel(pl.LightningModule):
         intensity_preds = self.intensity_regressor(outputs.hidden_states[-1][:, 0, :]).squeeze(-1)
         return label2_logits, intensity_preds
 
-pretrained_model_path = "/home/user/AZ/hubert/model2/fold_idx=11_epoch=28-val_acc_label2=0.4819.ckpt"
+pretrained_model_path = "/home/jinux/Desktop/현대모비스/Coding/fold_idx=11_epoch=28-val_acc_label2=0.4819.ckpt"
 hubert_model = MyLitModel.load_from_checkpoint(
     pretrained_model_path,
     audio_model_name=audio_model_name,
@@ -265,6 +270,38 @@ answer_llm = ChatOpenAI(api_key=openai_api_key, model_name="gpt-4o-mini")
 classify_chain = LLMChain(llm=classify_llm, prompt=classify_prompt)
 answer_chain = LLMChain(llm=answer_llm, prompt=answer_prompt, memory=memory)
 
+def get_classifier():
+    # 프롬프트 템플릿 구성
+    classify_prompt_ = classify_prompt
+
+    # OpenAI 모델 초기화
+    query_model = "gpt-4o-mini"  # 필요 시 'gpt-4'로 변경
+    classify_llm = ChatOpenAI(openai_api_key=openai_api_key, model=query_model)
+
+    # 메시지 입력 함수 정의
+    def classify_input(question):
+        formatted_prompt = classify_prompt_.format_prompt(question=question).to_messages()
+        return classify_llm(messages=formatted_prompt)
+
+    return classify_input
+
+
+
+def get_current_location():
+    # Geocoder 객체 생성
+    geolocator = Nominatim(user_agent="geoapiExercises")
+
+    # IP 주소 기반의 위치 추정은 정확도가 낮을 수 있으므로 예제에서는 고정된 위치를 질의합니다.
+    # 실제 서비스에서는 이 부분에 사용자의 IP 주소를 바탕으로 한 좌표 검색 로직이 들어가거나,
+    # GPS 데이터를 사용해야 할 수 있습니다.
+    location = geolocator.geocode("서울특별시")
+    
+    if location:
+        return (location.latitude, location.longitude)
+    else:
+        return "위치를 찾을 수 없습니다."
+
+
 # API Endpoints
 @app.post("/analyze")
 async def analyze_request(request: Request):
@@ -276,8 +313,29 @@ async def analyze_request(request: Request):
     classify_result = classify_chain.predict(question=user_text)
 
     if classify_result.upper() == "ROUTE":
-        #내비 로직
-        additional_info = "Route-related logic here." # 여기 들어갈 부분이 gpt에 바로 반영될 예정입니다  + 현재위치, 현재 날짜 시간
+        #Ask to GPT
+        classifier = get_classifier()
+        question = audio_path
+        response = classifier(question)
+        
+        #Append GPT's response
+        search_keywords = classify_result.split(",")
+        additional_info = ""
+        for i in search_keywords: 
+            additional_info.append(i)
+
+
+        #Append Current Location, Datetime
+        current_time = datetime.now(pytz.timezone("Asia/Seoul"))  # Adjust timezone as needed
+        current_location = get_current_location()
+        additional_info += f"Current location: {current_location}. "
+        additional_info += f"Current time: {current_time.strftime('%Y-%m-%d %H:%M:%S')}."
+
+        return {
+            "additional_info" : additional_info
+        }
+
+        #additional_info = "Route-related logic here." # 여기 들어갈 부분이 gpt에 바로 반영될 예정입니다  + 현재위치, 현재 날짜 시간
     elif classify_result.lower() != "false":
         search_keywords = classify_result.split(",")
         search_query = " ".join(search_keywords)
