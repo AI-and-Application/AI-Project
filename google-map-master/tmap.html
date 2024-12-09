@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tmap Navigation</title>
+  <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=YOUR_TMAP_API_KEY"></script>
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; }
+    #map_div { width: 100%; height: 70%; }
+    #controls { padding: 10px; background: #f8f8f8; }
+    input, button { margin: 5px 0; padding: 10px; font-size: 14px; }
+    button { background-color: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #0056b3; }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <input id="start" type="text" placeholder="Enter start location">
+    <input id="end" type="text" placeholder="Enter destination">
+    <button onclick="navigateWithStartAndEnd()">Navigate</button>
+  </div>
+  <div id="map_div"></div>
+
+  <script>
+    let map;
+
+    function initTmap() {
+      map = new Tmapv2.Map("map_div", {
+        center: new Tmapv2.LatLng(37.5665, 126.9780), // Default: Seoul
+        zoom: 14,
+      });
+    }
+
+    function navigateWithStartAndEnd() {
+      const start = document.getElementById("start").value.trim();
+      const end = document.getElementById("end").value.trim();
+
+      if (!start || !end) {
+        alert("Please provide both a start and destination.");
+        return;
+      }
+
+      geocodeAddress(start, (startCoords) => {
+        geocodeAddress(end, (endCoords) => {
+          calculateRoute(startCoords, endCoords);
+        });
+      });
+    }
+
+    function geocodeAddress(address, callback) {
+      const tData = new Tmapv2.extension.TData();
+      tData.getPOIDataFromSearchJson(encodeURIComponent(address), {
+        onComplete: function(response) {
+          if (response.searchPoiInfo.pois.poi.length > 0) {
+            const poi = response.searchPoiInfo.pois.poi[0];
+            const coords = new Tmapv2.LatLng(poi.frontLat, poi.frontLon);
+            callback(coords);
+          } else {
+            alert(`Geocoding failed for "${address}".`);
+          }
+        },
+        onError: function(error) {
+          console.error("Geocoding error:", error);
+        }
+      });
+    }
+
+    function calculateRoute(startCoords, endCoords) {
+      const headers = { appKey: "YOUR_TMAP_API_KEY" };
+      const requestData = {
+        startX: startCoords.lng(),
+        startY: startCoords.lat(),
+        endX: endCoords.lng(),
+        endY: endCoords.lat(),
+        reqCoordType: "WGS84GEO",
+        resCoordType: "EPSG3857",
+        startName: "Start",
+        endName: "End",
+      };
+
+      fetch("https://apis.openapi.sk.com/tmap/routes?version=1", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify(requestData),
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.features) {
+          drawRoute(data.features);
+        } else {
+          alert("No route found.");
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching route:", error);
+      });
+    }
+
+    function drawRoute(features) {
+      const path = [];
+      features.forEach((feature) => {
+        if (feature.geometry.type === "LineString") {
+          feature.geometry.coordinates.forEach((coord) => {
+            const [lng, lat] = coord;
+            path.push(new Tmapv2.LatLng(lat, lng));
+          });
+        }
+      });
+
+      new Tmapv2.Polyline({
+        path: path,
+        strokeColor: "#FF0000",
+        strokeWeight: 4,
+        map: map,
+      });
+
+      map.setCenter(path[0]);
+    }
+
+    window.onload = initTmap;
+  </script>
+</body>
+</html>

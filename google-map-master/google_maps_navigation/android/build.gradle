@@ -1,0 +1,35 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // Use the Android Gradle Plugin compatible with your Flutter version
+        // AGP 8.1.0 is generally stable with Flutter (as of 2023)
+        classpath "com.android.tools.build:gradle:8.1.0"
+    }
+}
+
+plugins {
+    // If you need Kotlin, ensure a matching version here
+    // id "org.jetbrains.kotlin.android" version "1.8.20" apply false
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}

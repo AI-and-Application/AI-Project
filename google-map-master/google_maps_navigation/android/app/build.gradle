@@ -1,0 +1,46 @@
+plugins {
+    id "com.android.application" version "8.1.0"
+    // If using Kotlin, uncomment this line:
+    // id "org.jetbrains.kotlin.android"
+    id 'kotlin-android'
+    // Apply the Flutter Gradle Plugin after Android and Kotlin
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace "com.example.google_maps_navigation" // Update with your app’s package name
+    compileSdk 34 // Adjust as needed
+
+    defaultConfig {
+        applicationId "com.example.google_maps_navigation" // Change to your app’s unique ID
+        minSdkVersion 21 // Adjust based on your requirements
+        targetSdkVersion 34 // Match or exceed compileSdk
+        versionCode 1
+        versionName "1.0"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+     kotlinOptions {
+         jvmTarget = "1.8"
+     }
+
+    buildTypes {
+        release {
+            // For demonstration, using debug signing. Replace with proper signing config.
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source "../.."
+}
+
+dependencies {
+    implementation "androidx.core:core-ktx:1.10.1"
+    // Add other dependencies as needed
+}

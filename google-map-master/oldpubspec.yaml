@@ -1,0 +1,26 @@
+name: google_maps_navigation
+description: A Flutter app replicating a Google Maps Navigation HTML project.
+
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_maps_flutter: ^2.3.0
+  geolocator: ^9.0.2
+  permission_handler: ^10.2.0
+  record: ^4.1.0
+  flutter_polyline_points: ^1.0.0
+  google_maps_webservice: ^0.0.20-nullsafety.5
+  http: ^0.13.5
+  path_provider: ^2.0.0
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
