@@ -1,6 +1,6 @@
 # 차비스 (Cha-Vis) 🚗💬
 
-**차비스 (Cha-Vis)** is a cutting-edge AI-driven personalized driving partner designed to enhance the driving experience by integrating real-time navigation with emotion control. Cha-Vis not only provides accurate directions but also analyzes user emotions through speech, offering empathetic interactions to promote safer and more comfortable driving.
+**차비스 (Cha-Vis)** is an innovative AI-driven personalized driving partner designed to enhance the driving experience by integrating real-time navigation with emotion control. Cha-Vis not only provides accurate directions but also analyzes user emotions through speech, offering empathetic interactions to promote safer and more comfortable driving.
 
 ---
 
@@ -20,14 +20,31 @@
   - [Backend Setup](#backend-setup)
   - [Frontend Setup](#frontend-setup)
 - [Usage](#usage)
-- [API Endpoints](#api-endpoints)
+  - [API Endpoints](#api-endpoints)
+  - [Example API Call](#example-api-call)
 - [Code Structure](#code-structure)
+- [Performance Optimization](#performance-optimization)
+  - [Applying Flash Attention to HuBERT](#applying-flash-attention-to-hubert)
+  - [Profiling and Analysis](#profiling-and-analysis)
+  - [Academic Significance](#academic-significance)
+  - [Future Improvement Directions](#future-improvement-directions)
 - [Security Considerations](#security-considerations)
+  - [API Key and Credential Management](#api-key-and-credential-management)
+  - [Data Privacy and Protection](#data-privacy-and-protection)
+  - [Dependency Management](#dependency-management)
+  - [Code Security Practices](#code-security-practices)
+- [Incident Response](#incident-response)
 - [Contributing](#contributing)
+  - [How to Contribute](#how-to-contribute)
+  - [Code of Conduct](#code-of-conduct)
+  - [Reviewing Process](#reviewing-process)
+  - [Documentation](#documentation)
 - [License](#license)
 - [Contact](#contact)
 - [Future Enhancements](#future-enhancements)
 - [FAQ](#faq)
+- [Acknowledgments](#acknowledgments)
+- [Additional Resources](#additional-resources)
 
 ---
 
@@ -67,7 +84,7 @@ Driving can be a stressful experience, especially in heavy traffic or during lon
   **Example:**
   
   > "There's a festival ahead on your route with many positive reviews on social media. Would you like to stop by?"
-
+  
 - **Traffic Updates:** Provides real-time traffic conditions to suggest the fastest and most efficient routes.
 - **Weather Alerts:** Alerts users about upcoming weather conditions that may affect driving.
 
@@ -79,7 +96,7 @@ Driving can be a stressful experience, especially in heavy traffic or during lon
 
 **Example:**
 
-> "Based on your interest in coffee shops, I found a highly-rated café nearby. Would you like directions to Starbucks on Teheran-ro?"
+> "Based on your interest in coffee shops, I recommend visiting the famous Gangnam BBQ restaurant. Would you like directions?"
 
 ### 4. Emotion Recognition and Management
 
@@ -91,7 +108,7 @@ Driving can be a stressful experience, especially in heavy traffic or during lon
 - **Emotion-based Care:**
   - **Stress Detection:** Plays calming music or reduces volume, engages in soothing conversations to minimize accident risks.
   - **Emotion Coaching:** Offers simple AI-driven coaching sessions, such as guided breathing exercises or empathetic dialogues.
-
+  
   **Example:**
   
   > "It's natural to feel angry in this situation. Please take a deep breath while I explain what's happening. We'll resolve this together."
@@ -129,13 +146,13 @@ Driving can be a stressful experience, especially in heavy traffic or during lon
   - `flash_attn`: For optimized attention mechanisms in AI models.
   - `dotenv`: For managing environment variables securely.
   - `requests`: For making HTTP requests to external APIs.
-  - `logging`: For tracking events that happen when some software runs.
+  - `logging`: For tracking events that happen when the software runs.
 
 ---
 
 ## Architecture
 
-![Architecture Diagram](https://github.com/AI-and-Application/AI-Project/blob/main/architecture_diagram.png?raw=true)
+![Architecture Diagram](https://github.com/AI-and-Application/AI-Project/blob/main/architecture_design.png?raw=true)
 
 ### 1. Frontend (Flutter)
 
