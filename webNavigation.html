@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Maps Navigation</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.2.4/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBevGewSdAnJtkl-Zyv2nD1AY2n10sFT6Q&libraries=places&language=ko"></script>
+  <script src="https://cdn.jsdelivr.net/npm/recordrtc@5.6.2/RecordRTC.min.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+    .floating-panel {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 9999;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(5px);
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      width: 280px;
+      max-width: 90%;
+      padding: 15px;
+      box-sizing: border-box;
+      display: none;  
+    }
+    .hamburger-button {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 9999;
+      width: 50px;
+      height: 50px;
+      background-color: #1e40af;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 24px;
+    }
+    .button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+    }
+    .button-primary {
+      background-color: #1e40af;
+    }
+    .button-primary:hover {
+      background-color: #2563eb;
+    }
+    .button-secondary {
+      background-color: #f59e0b;
+    }
+    .button-secondary:hover {
+      background-color: #d97706;
+    }
+    .input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    #route-messages {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      font-size: 16px;
+      padding: 15px;
+      text-align: center;
+      z-index: 10000;
+      border-radius: 8px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <button id="toggle-panel" class="hamburger-button">☰</button>
+
+  <div id="control-panel" class="floating-panel">
+    <h2 class="text-lg font-bold mb-4 text-center">Google Maps Navigation</h2>
+    <input id="start" type="text" placeholder="출발지" class="input">
+    <input id="end" type="text" placeholder="도착지" class="input">
+    <button class="button button-primary" onclick="handleButtonPress(() => navigateWithStartAndEnd())">출발지 및 도착지 경로</button>
+    <input id="destination" type="text" placeholder="도착지 (현재 위치 출발)" class="input">
+    <button class="button button-primary" onclick="handleButtonPress(() => startRealTimeNavigation())">실시간 내비게이션</button>
+    <button class="button button-secondary" onclick="handleButtonPress(() => stopRealTimeNavigation())">내비게이션 중지</button>
+    <input id="keyword" type="text" placeholder="POI 검색 (예: 레스토랑)" class="input">
+    <button class="button button-secondary" onclick="handleButtonPress(() => searchPOI())">POI 검색</button>
+    <input id="destination-sim" type="text" placeholder="도착지 (시뮬레이션)" class="input">
+    <button class="button button-primary" onclick="handleButtonPress(() => startSimulation())">시뮬레이션 시작</button>
+    <button id="record-button" class="button button-secondary">녹음 시작</button>
+    <a id="download-link" style="display: none;">녹음 다운로드</a>
+  </div>
+
+
+  <div id="route-messages">내비게이션 메시지가 여기에 표시됩니다.</div>
+
+  <script>
+    let map, directionsService, directionsRenderer, placesService, currentPositionMarker, watchId, stepIndex = 0;
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 37.7749, lng: -122.4194 },
+        zoom: 16,
+      });
+
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer({
+        preserveViewport: true,
+        map: map,
+      });
+
+      placesService = new google.maps.places.PlacesService(map);
+    }
+
+    function navigateWithStartAndEnd() {
+      const start = document.getElementById("start").value.trim();
+      const end = document.getElementById("end").value.trim();
+
+      if (!start || !end) {
+        alert("출발지와 도착지를 입력하세요.");
+        return;
+      }
+
+      directionsService.route(
+        {
+          origin: start,
+          destination: end,
+          travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (status === google.maps.DirectionsStatus.OK) {
+            directionsRenderer.setDirections(result);
+            displayRouteMessages(result.routes[0].legs[0].steps);
+          } else {
+            alert("경로를 찾을 수 없습니다.");
+          }
+        }
+      );
+    }
+
+    function displayRouteMessages(steps) {
+      const messageBox = document.getElementById("route-messages");
+      messageBox.style.display = "block";
+      stepIndex = 0;
+      updateMessage(steps[stepIndex]);
+
+      const interval = setInterval(() => {
+        stepIndex++;
+        if (stepIndex < steps.length) {
+          updateMessage(steps[stepIndex]);
+        } else {
+          clearInterval(interval);
+          messageBox.textContent = "도착지에 도달했습니다!";
+        }
+      }, 5000);
+    }
+
+    const betterClearHTMLTags = (strToSanitize) => {
+      let myHTML = new DOMParser()
+        .parseFromString(strToSanitize, 'text/html');
+      return myHTML.body.textContent || '';
+    }
+
+    function updateMessage(step) {
+      const messageBox = document.getElementById("route-messages");
+
+      messageBox.textContent = betterClearHTMLTags(`${step.instructions} (${step.distance.text})`);
+      console.log(messageBox.textContent);
+      map.setCenter(step.start_location); 
+      map.setZoom(16); 
+    }
+
+    function handleButtonPress(action) {
+      const panel = document.getElementById("control-panel");
+      panel.style.display = "none";
+      action();
+    }
+
+    function startSimulation() {
+      const destination = document.getElementById("destination-sim").value.trim();
+
+      if (!destination) {
+        alert("도착지를 입력하세요.");
+        return;
+      }
+
+      let simulatedLocation = { lat: 37.7749, lng: -122.4194 };
+
+      geocodeDestination(destination, (destinationCoords) => {
+        const interval = setInterval(() => {
+          simulatedLocation.lat += 0.0001;
+          simulatedLocation.lng += 0.0001;
+
+          if (!currentPositionMarker) {
+            currentPositionMarker = new google.maps.Marker({
+              position: simulatedLocation,
+              map: map,
+              title: "Simulated Position",
+            });
+          } else {
+            currentPositionMarker.setPosition(simulatedLocation);
+          }
+
+          directionsService.route(
+            {
+              origin: simulatedLocation,
+              destination: destinationCoords,
+              travelMode: google.maps.TravelMode.DRIVING,
+            },
+            (result, status) => {
+              if (status === google.maps.DirectionsStatus.OK) {
+                directionsRenderer.setDirections(result);
+              }
+            }
+          );
+
+          if (
+            Math.abs(simulatedLocation.lat - destinationCoords.lat()) < 0.0001 &&
+            Math.abs(simulatedLocation.lng - destinationCoords.lng()) < 0.0001
+          ) {
+            clearInterval(interval);
+            alert("시뮬레이션 완료");
+          }
+        }, 2000);
+      });
+    }
+
+    function geocodeDestination(address, callback) {
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ address }, (results, status) => {
+        if (status === google.maps.GeocoderStatus.OK) {
+          callback(results[0].geometry.location);
+        } else {
+          alert("주소를 찾을 수 없습니다: " + status);
+        }
+      });
+    }
+
+    function startRealTimeNavigation() {
+      const destination = document.getElementById("destination").value.trim();
+
+      if (!destination) {
+        alert("도착지를 입력하세요.");
+        return;
+      }
+
+      if (navigator.geolocation) {
+        watchId = navigator.geolocation.watchPosition(
+          (position) => {
+            const userLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+
+            if (!currentPositionMarker) {
+              currentPositionMarker = new google.maps.Marker({
+                position: userLocation,
+                map: map,
+                icon: { url: "https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png" },
+              });
+            } else {
+              currentPositionMarker.setPosition(userLocation);
+            }
+
+            map.setCenter(userLocation);
+            map.setZoom(16);
+
+            geocodeDestination(destination, (destinationCoords) => {
+              directionsService.route(
+                {
+                  origin: userLocation,
+                  destination: destinationCoords,
+                  travelMode: google.maps.TravelMode.DRIVING,
+                },
+                (result, status) => {
+                  if (status === google.maps.DirectionsStatus.OK) {
+                    directionsRenderer.setDirections(result);
+                  }
+                }
+              );
+            });
+          },
+          (error) => alert("위치를 가져올 수 없습니다: " + error.message),
+          { enableHighAccuracy: true }
+        );
+      } else {
+        alert("브라우저가 Geolocation을 지원하지 않습니다.");
+      }
+    }
+
+    function stopRealTimeNavigation() {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        alert("실시간 내비게이션이 중지되었습니다.");
+        watchId = null;
+      }
+    }
+
+    function searchPOI() {
+      const keyword = document.getElementById("keyword").value.trim();
+      if (!keyword) {
+        alert("키워드를 입력하세요.");
+        return;
+      }
+
+      const request = {
+        query: keyword,
+        fields: ["name", "geometry"],
+      };
+
+      placesService.findPlaceFromQuery(request, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+          const place = results[0];
+          map.setCenter(place.geometry.location);
+          map.setZoom(16);
+
+          new google.maps.Marker({
+            position: place.geometry.location,
+            map: map,
+          });
+        } else {
+          alert("POI를 찾을 수 없습니다.");
+        }
+      });
+    }
+
+    document.getElementById("toggle-panel").addEventListener("click", () => {
+      const panel = document.getElementById("control-panel");
+      panel.style.display = panel.style.display === "none" ? "block" : "none";
+    });
+
+    window.onload = initMap;
+
+    <!-- Recording logic appended below (no changes above) -->
+    let recorder, audioBlob;
+    document.getElementById("record-button").addEventListener("click", function() {
+      if (recorder && recorder.getState() === "recording") {
+        recorder.stopRecording(() => {
+          audioBlob = recorder.getBlob();
+          const url = URL.createObjectURL(audioBlob);
+
+          const downloadLink = document.getElementById("download-link");
+          downloadLink.href = url;
+          downloadLink.download = "recording.wav";
+          downloadLink.textContent = "녹음 다운로드";
+          downloadLink.style.display = "block";
+        });
+
+        this.textContent = "녹음 시작";
+      } else {
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then((stream) => {
+            recorder = new RecordRTC(stream, { type: "audio" });
+            recorder.startRecording();
+            this.textContent = "녹음 중지";
+          })
+          .catch((err) => {
+            alert("오디오 녹음에 실패했습니다: " + err.message);
+          });
+      }
+    });
+  </script>
+</body>
+</html>
