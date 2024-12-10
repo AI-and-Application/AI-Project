@@ -1,227 +1,582 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Turn-by-Turn Navigation with POI Search</title>
-  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
+  <title>Google Maps Navigation</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.2.4/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBevGewSdAnJtkl-Zyv2nD1AY2n10sFT6Q&libraries=places&language=ko"></script>
+  <script src="https://cdn.jsdelivr.net/npm/recordrtc@5.6.2/RecordRTC.min.js"></script>
   <style>
-    body, html {
+    html, body {
       margin: 0;
       padding: 0;
       height: 100%;
+      overflow: hidden;
     }
     #map {
-      height: 65%;
+      height: 100%;
       width: 100%;
     }
-    #controls {
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
+    .floating-panel {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 9999;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(5px);
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      width: 280px;
+      max-width: 90%;
+      padding: 15px;
+      box-sizing: border-box;
+      display: none;
     }
-    #route-search, #poi-search {
-      margin-bottom: 10px;
-    }
-    input, button {
-      margin: 5px 0;
-      padding: 10px;
-      font-size: 14px;
-    }
-    button {
-      background-color: #007bff;
+    .hamburger-button {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 9999;
+      width: 50px;
+      height: 50px;
+      background-color: #1e40af;
       color: white;
       border: none;
+      border-radius: 50%;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
+      font-size: 24px;
     }
-    button:hover {
-      background-color: #0056b3;
-    }
-    #instructions {
-      margin-top: 10px;
+    .button {
+      width: 100%;
       padding: 10px;
-      max-height: 150px;
-      overflow-y: auto;
-      border: 1px solid #ddd;
-      background: #fff;
+      margin-bottom: 10px;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+    }
+    .button-primary {
+      background-color: #1e40af;
+    }
+    .button-primary:hover {
+      background-color: #2563eb;
+    }
+    .button-secondary {
+      background-color: #f59e0b;
+    }
+    .button-secondary:hover {
+      background-color: #d97706;
+    }
+    .input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    #route-messages {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      font-size: 16px;
+      padding: 15px;
+      text-align: center;
+      z-index: 10000;
+      border-radius: 8px;
+      display: none;
     }
   </style>
 </head>
 <body>
-<div id="controls">
-  <!-- Route Search -->
-  <div id="route-search">
-    <input id="start" type="text" placeholder="Enter start location">
-    <input id="end" type="text" placeholder="Enter destination">
-    <button onclick="startNavigation()">Start Navigation</button>
+  <div id="map"></div>
+
+  <button id="toggle-panel" class="hamburger-button">☰</button>
+
+  <div id="control-panel" class="floating-panel">
+    <h2 class="text-lg font-bold mb-4 text-center">Google Maps Navigation</h2>
+
+    <!-- Manual Input Fields -->
+    <input id="manual-start" type="text" placeholder="출발지" class="input">
+    <input id="manual-end" type="text" placeholder="도착지" class="input">
+    <button class="button button-primary" onclick="handleManualSearch()">Manual Search</button>
+
+    <!-- Simulation -->
+    <input id="simulation-start" type="text" placeholder="시뮬레이션 출발지" class="input">
+    <input id="simulation-end" type="text" placeholder="시뮬레이션 도착지" class="input">
+    <button class="button button-primary" onclick="startSimulation()">Start Simulation</button>
+
+    <!-- POI Search -->
+    <input id="poi-keyword" type="text" placeholder="POI 검색 (예: 레스토랑)" class="input">
+    <button class="button button-primary" onclick="searchPOI()">Search POI</button>
+
+    <!-- Audio Upload -->
+    <input type="file" id="audio-upload" accept="audio/*" class="input">
+    <button class="button button-primary" onclick="handleAudioUpload()">Analyze Audio</button>
+
+    <!-- Stop Navigation -->
+    <button class="button button-secondary" onclick="stopRealTimeNavigation()">Stop Navigation</button>
+    <button id="show-current-location" class="button button-primary">Show Current Location</button>
+    <div id="audio-controls" style="position: absolute; bottom: 10px; left: 10px; z-index: 9999;">
+      <button id="record-audio" class="button button-secondary">Record Audio</button>
+      <div id="recording-status" style="margin-top: 10px; color: #333;"></div>
   </div>
-
-  <!-- POI Search -->
-  <div id="poi-search">
-    <input id="keyword" type="text" placeholder="Search for places (e.g., restaurants)">
-    <button onclick="searchPOI()">Search POI</button>
   </div>
+<div id="current-location-message"></div>
 
-  <!-- Instructions -->
-  <div id="instructions"></div>
-</div>
-<div id="map"></div>
 
-<script>
-  let map, directionsService, directionsRenderer, placesService;
-  let steps = [];
-  let currentStepIndex = 0;
+  <div id="route-messages">내비게이션 메시지가 여기에 표시됩니다.</div>
 
-  // Initialize the map
-  function initMap() {
-    map = new google.maps.Map(document.getElementById("map"), {
-      center: { lat: 37.7749, lng: -122.4194 }, // Default: San Francisco
-      zoom: 14,
-    });
+  <script>
+    let map, directionsService, directionsRenderer, placesService, currentPositionMarker, watchId;
 
-    directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer();
-    directionsRenderer.setMap(map);
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 37.7749, lng: -122.4194 },
+        zoom: 16,
+      });
 
-    placesService = new google.maps.places.PlacesService(map);
-  }
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer({
+        preserveViewport: true,
+        map: map,
+      });
 
-  // Start navigation
-  function startNavigation() {
-    const start = document.getElementById("start").value;
-    const end = document.getElementById("end").value;
-
-    if (!start || !end) {
-      alert("Please provide both a start and destination.");
-      return;
+      placesService = new google.maps.places.PlacesService(map);
     }
 
-    const request = {
-      origin: start,
-      destination: end,
-      travelMode: google.maps.TravelMode.DRIVING,
-    };
+    function searchPOI() {
+      const keyword = document.getElementById("poi-keyword").value.trim();
 
-    directionsService.route(request, (result, status) => {
-      if (status === google.maps.DirectionsStatus.OK) {
-        directionsRenderer.setDirections(result);
-        steps = result.routes[0].legs[0].steps;
-        displayTurnByTurnInstructions();
-      } else {
-        alert("Could not calculate route: " + status);
+      if (!keyword) {
+        alert("Please enter a POI keyword to search.");
+        return;
       }
-    });
-  }
 
-  // Display turn-by-turn instructions
-  function displayTurnByTurnInstructions() {
-    const instructionsDiv = document.getElementById("instructions");
-    instructionsDiv.innerHTML = "";
+      const request = {
+        query: keyword,
+        fields: ["name", "geometry"],
+      };
 
-    steps.forEach((step, index) => {
-      instructionsDiv.innerHTML += `<p><strong>Step ${index + 1}:</strong> ${step.instructions} (${step.distance.text})</p>`;
-    });
+      placesService.findPlaceFromQuery(request, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+          const place = results[0];
+          map.setCenter(place.geometry.location);
+          map.setZoom(16);
 
-    // Optionally, start real-time updates for turn-by-turn
-    currentStepIndex = 0;
-    trackRealTimeTurns();
-  }
-
-  // Track user's position and update turn-by-turn instructions
-  function trackRealTimeTurns() {
-    if (navigator.geolocation) {
-      navigator.geolocation.watchPosition(
-        (position) => {
-          const userLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-
-          map.panTo(userLocation);
-
-          if (currentStepIndex < steps.length) {
-            const nextStep = steps[currentStepIndex];
-            const stepLocation = nextStep.start_location;
-
-            const distanceToNextStep = calculateDistance(
-              userLocation.lat,
-              userLocation.lng,
-              stepLocation.lat(),
-              stepLocation.lng()
-            );
-
-            if (distanceToNextStep < 50) {
-              alert(`Turn-by-turn: ${nextStep.instructions}`);
-              currentStepIndex++;
-            }
-          } else {
-            alert("You have reached your destination!");
-          }
-        },
-        (error) => {
-          console.error("Error getting location: ", error);
-        }
-      );
-    } else {
-      alert("Geolocation is not supported by your browser.");
-    }
-  }
-
-  // Calculate distance between two points
-  function calculateDistance(lat1, lng1, lat2, lng2) {
-    const R = 6371e3; // Earth's radius in meters
-    const φ1 = (lat1 * Math.PI) / 180;
-    const φ2 = (lat2 * Math.PI) / 180;
-    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-    const Δλ = ((lng2 - lng1) * Math.PI) / 180;
-
-    const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c; // Distance in meters
-  }
-
-  // Search for POI
-  function searchPOI() {
-    const keyword = document.getElementById("keyword").value;
-    if (!keyword) {
-      alert("Please enter a keyword to search.");
-      return;
-    }
-
-    const request = {
-      location: map.getCenter(),
-      radius: 5000, // Search within 5km
-      keyword: keyword,
-    };
-
-    placesService.nearbySearch(request, (results, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK) {
-        results.forEach((place) => {
-          const marker = new google.maps.Marker({
+          new google.maps.Marker({
             position: place.geometry.location,
             map: map,
-            title: place.name,
           });
+          alert(`Found: ${place.name}`);
+        } else {
+          alert("POI not found.");
+        }
+      });
+    }
 
-          const infoWindow = new google.maps.InfoWindow({
-            content: `<strong>${place.name}</strong><br>${place.vicinity}`,
-          });
+    function startSimulation() {
+      const start = document.getElementById("simulation-start").value.trim();
+      const end = document.getElementById("simulation-end").value.trim();
 
-          marker.addListener("click", () => {
-            infoWindow.open(map, marker);
-          });
-        });
-      } else {
-        alert("Could not find POIs: " + status);
+      if (!start || !end) {
+        alert("Please provide both start and end points for simulation.");
+        return;
       }
-    });
-  }
 
-  // Initialize the map on window load
-  window.onload = initMap;
-</script>
+      geocodeDestination(start, (startCoords) => {
+        geocodeDestination(end, (endCoords) => {
+          simulateMovement(startCoords, endCoords);
+        });
+      });
+    }
+    function startNavigation(start, destination) {
+    if (!start || !destination) {
+        console.error("Start or destination location missing.");
+        alert("Start and destination locations are required for navigation.");
+        return;
+    }
+
+    console.log(`Attempting to start navigation:`);
+    console.log(`Start location: ${start}`);
+    console.log(`Destination location: ${destination}`);
+
+    const directionsService = new google.maps.DirectionsService();
+    const directionsRenderer = new google.maps.DirectionsRenderer();
+
+    // Assuming `map` is already initialized
+    directionsRenderer.setMap(map);
+
+    directionsService.route(
+        {
+            origin: start,
+            destination: destination,
+            travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+            console.log("Directions API callback triggered:");
+            console.log(`Status: ${status}`);
+            console.log("Result:", result);
+
+            if (status === google.maps.DirectionsStatus.OK) {
+                directionsRenderer.setDirections(result);
+                console.log("Directions successfully rendered on the map.");
+
+                // Extract route steps
+                const steps = result.routes[0].legs[0].steps;
+                console.log("Route Steps:", steps);
+
+                // Process each step to remove HTML tags
+                steps.forEach((step, index) => {
+                    const rawInstruction = step.instructions;
+                    const cleanInstruction = rawInstruction.replace(/<[^>]*>/g, ""); // Remove HTML tags
+                    console.log(`Step ${index + 1}: ${cleanInstruction} (${step.distance.text})`);
+                });
+
+                alert(`Navigation started: ${start} to ${destination}`);
+            } else {
+                console.error(`Directions request failed with status: ${status}`);
+                alert("Failed to start navigation. Please check the locations.");
+            }
+        }
+    );
+
+    console.log("Directions request sent to Google Maps API.");
+}
+document.getElementById("show-current-location").addEventListener("click", () => {
+    showCurrentLocation();
+});
+
+function showCurrentLocation() {
+    const messageBox = document.getElementById("current-location-message");
+
+    if (navigator.geolocation) {
+        console.log("Attempting to retrieve current location...");
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+
+                console.log(`Current location: Latitude: ${latitude}, Longitude: ${longitude}`);
+                messageBox.textContent = `Your current location: Latitude: ${latitude}, Longitude: ${longitude}`;
+
+                // Display the current location on the map
+                const currentLocation = { lat: latitude, lng: longitude };
+
+                if (!map) {
+                    console.error("Map is not initialized.");
+                    return;
+                }
+
+                // Center the map and add a marker for the current location
+                map.setCenter(currentLocation);
+                map.setZoom(16);
+
+                new google.maps.Marker({
+                    position: currentLocation,
+                    map: map,
+                    title: "You are here",
+                    icon: {
+                        url: "https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png",
+                    },
+                });
+            },
+            (error) => {
+                console.error("Error retrieving location:", error.message);
+                messageBox.textContent = "Unable to retrieve your location. Please ensure location services are enabled.";
+                alert("Unable to retrieve your location. Please ensure location services are enabled.");
+            },
+            { enableHighAccuracy: true }
+        );
+    } else {
+        console.error("Geolocation API not supported by this browser.");
+        messageBox.textContent = "Geolocation is not supported by your browser.";
+        alert("Geolocation is not supported by your browser.");
+    }
+}
+
+    function simulateMovement(startCoords, endCoords) {
+      let simulatedLocation = { lat: startCoords.lat(), lng: startCoords.lng() };
+
+      const interval = setInterval(() => {
+        simulatedLocation.lat += (endCoords.lat() - simulatedLocation.lat) * 0.01;
+        simulatedLocation.lng += (endCoords.lng() - simulatedLocation.lng) * 0.01;
+
+        if (!currentPositionMarker) {
+          currentPositionMarker = new google.maps.Marker({
+            position: simulatedLocation,
+            map: map,
+            title: "Simulated Position",
+          });
+        } else {
+          currentPositionMarker.setPosition(simulatedLocation);
+        }
+
+        directionsService.route(
+          {
+            origin: simulatedLocation,
+            destination: endCoords,
+            travelMode: google.maps.TravelMode.DRIVING,
+          },
+          (result, status) => {
+            if (status === google.maps.DirectionsStatus.OK) {
+              directionsRenderer.setDirections(result);
+            }
+          }
+        );
+
+        if (
+          Math.abs(simulatedLocation.lat - endCoords.lat()) < 0.0001 &&
+          Math.abs(simulatedLocation.lng - endCoords.lng()) < 0.0001
+        ) {
+          clearInterval(interval);
+          alert("Simulation complete.");
+        }
+      }, 1000);
+    }
+
+    function geocodeDestination(address, callback) {
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ address }, (results, status) => {
+        if (status === google.maps.GeocoderStatus.OK) {
+          callback(results[0].geometry.location);
+        } else {
+          alert("Address not found: " + status);
+        }
+      });
+    }
+    async function handleAudioUpload() {
+    // Simulate the audio path (this should be dynamically set or fetched)
+    const audioPath = "korea.wav"; // Replace with actual logic to get the file path
+
+    const payload = {
+        audio_path: audioPath, // JSON payload for the request
+    };
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/analyze", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json", // Matches the Content-Type in your curl command
+            },
+            body: JSON.stringify(payload), // Converts the JavaScript object to JSON
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json(); // Parse the JSON response
+        console.log("Response:", result);
+
+        // Extract `additional_info` from the response
+        const additionalInfo = result.additional_info || "No additional info provided";
+        console.log(`Extracted Additional Info: ${additionalInfo}`);
+
+        // Check if we have two pieces of information
+        const infoParts = additionalInfo.split(",");
+        if (infoParts.length === 2) {
+            const startLocation = infoParts[0].trim();
+            const destinationLocation = infoParts[1].trim();
+            console.log(`Start: ${startLocation}, Destination: ${destinationLocation}`);
+            startNavigation(startLocation, destinationLocation); // Automatically start navigation
+        } else if (infoParts.length === 1) {
+            // Single additional info - Trigger POI search
+            searchPOI(additionalInfo.trim());
+        } else {
+            alert("No valid additional info found for navigation or POI search.");
+        }
+
+    } catch (error) {
+        console.error("Error:", error);
+        alert("An error occurred while sending the request.");
+    }
+}
+
+
+// POI Search function
+function searchPOI(keyword) {
+    if (!keyword) {
+        alert("POI keyword is missing.");
+        return;
+    }
+
+    const request = {
+        query: keyword,
+        fields: ["name", "geometry"],
+    };
+
+    const placesService = new google.maps.places.PlacesService(map); // Assuming `map` is already initialized
+    placesService.findPlaceFromQuery(request, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+            const place = results[0];
+            map.setCenter(place.geometry.location);
+            map.setZoom(16);
+
+            new google.maps.Marker({
+                position: place.geometry.location,
+                map: map,
+                title: place.name,
+            });
+            alert(`Found POI: ${place.name}`);
+        } else {
+            alert("POI not found.");
+        }
+    });
+}
+
+    function handleManualSearch() {
+      const start = document.getElementById("manual-start").value.trim();
+      const end = document.getElementById("manual-end").value.trim();
+
+      if (!start || !end) {
+        alert("Please provide both start and end points for manual search.");
+        return;
+      }
+
+      navigateWithStartAndEnd(start, end);
+    }
+    let mediaRecorder;
+let audioChunks = [];
+let isRecording = false;
+
+document.getElementById("record-audio").addEventListener("click", () => {
+    if (isRecording) {
+        stopRecording();
+    } else {
+        startRecording();
+    }
+});
+
+function startRecording() {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then((stream) => {
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+                const fileName = "recording.wav"; // Default file name
+                saveAudioLocally(audioBlob, fileName);
+
+                // Notify user to locate the file in ~/Downloads before sending it
+                document.getElementById("recording-status").textContent =
+                    `Audio saved as ${fileName} in ~/Downloads. Ready to send to server.`;
+
+                // Example of a curl-like function call to send the file path
+                const filePath = "/Users/jeffrey/Downloads/" + fileName; // Adjust this if needed
+                sendAudioPathToServer(filePath);
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            document.getElementById("record-audio").textContent = "Stop Recording";
+            document.getElementById("recording-status").textContent = "Recording...";
+            console.log("Recording started...");
+        })
+        .catch((error) => {
+            console.error("Error accessing microphone:", error);
+            alert("Could not access your microphone. Please check your permissions.");
+        });
+}
+
+function stopRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        document.getElementById("record-audio").textContent = "Record Audio";
+        console.log("Recording stopped.");
+    }
+}
+
+// Save audio locally (via user download)
+function saveAudioLocally(blob, fileName) {
+    const downloadLink = document.createElement("a");
+    downloadLink.href = URL.createObjectURL(blob);
+    downloadLink.download = fileName;
+    document.body.appendChild(downloadLink); // Append to the DOM
+    downloadLink.click(); // Trigger the download
+    document.body.removeChild(downloadLink); // Remove the link after download
+    console.log(`Audio saved locally as ${fileName}`);
+}
+
+// Simulate curl-like request to send file path to server
+function sendAudioPathToServer(filePath) {
+    console.log(`Sending audio path to server: ${filePath}`);
+
+    const requestBody = {
+        audio_path: filePath,
+    };
+
+    fetch("http://localhost:8000/analyze", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+    })
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then((data) => {
+            console.log("Server response:", data);
+            document.getElementById("recording-status").textContent = "Audio analyzed successfully!";
+            alert(`Analysis result: ${JSON.stringify(data)}`);
+        })
+        .catch((error) => {
+            console.error("Error sending audio to server:", error);
+            document.getElementById("recording-status").textContent = "Error analyzing audio.";
+        });
+}
+
+    function navigateWithStartAndEnd(start, end) {
+      directionsService.route(
+        {
+          origin: start,
+          destination: end,
+          travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (status === google.maps.DirectionsStatus.OK) {
+            directionsRenderer.setDirections(result);
+          } else {
+            alert("Failed to find the route.");
+          }
+        }
+      );
+    }
+
+    function stopRealTimeNavigation() {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        alert("Navigation stopped.");
+        watchId = null;
+      }
+    }
+
+    document.getElementById("toggle-panel").addEventListener("click", () => {
+      const panel = document.getElementById("control-panel");
+      panel.style.display = panel.style.display === "none" ? "block" : "none";
+    });
+
+    window.onload = initMap;
+  </script>
 </body>
 </html>
