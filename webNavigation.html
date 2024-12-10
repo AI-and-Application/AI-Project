@@ -31,7 +31,7 @@
       max-width: 90%;
       padding: 15px;
       box-sizing: border-box;
-      display: none;  
+      display: none;
     }
     .hamburger-button {
       position: absolute;
@@ -105,25 +105,33 @@
 
   <div id="control-panel" class="floating-panel">
     <h2 class="text-lg font-bold mb-4 text-center">Google Maps Navigation</h2>
-    <input id="start" type="text" placeholder="출발지" class="input">
-    <input id="end" type="text" placeholder="도착지" class="input">
-    <button class="button button-primary" onclick="handleButtonPress(() => navigateWithStartAndEnd())">출발지 및 도착지 경로</button>
-    <input id="destination" type="text" placeholder="도착지 (현재 위치 출발)" class="input">
-    <button class="button button-primary" onclick="handleButtonPress(() => startRealTimeNavigation())">실시간 내비게이션</button>
-    <button class="button button-secondary" onclick="handleButtonPress(() => stopRealTimeNavigation())">내비게이션 중지</button>
-    <input id="keyword" type="text" placeholder="POI 검색 (예: 레스토랑)" class="input">
-    <button class="button button-secondary" onclick="handleButtonPress(() => searchPOI())">POI 검색</button>
-    <input id="destination-sim" type="text" placeholder="도착지 (시뮬레이션)" class="input">
-    <button class="button button-primary" onclick="handleButtonPress(() => startSimulation())">시뮬레이션 시작</button>
-    <button id="record-button" class="button button-secondary">녹음 시작</button>
-    <a id="download-link" style="display: none;">녹음 다운로드</a>
-  </div>
 
+    <!-- Manual Input Fields -->
+    <input id="manual-start" type="text" placeholder="출발지" class="input">
+    <input id="manual-end" type="text" placeholder="도착지" class="input">
+    <button class="button button-primary" onclick="handleManualSearch()">Manual Search</button>
+
+    <!-- Simulation -->
+    <input id="simulation-start" type="text" placeholder="시뮬레이션 출발지" class="input">
+    <input id="simulation-end" type="text" placeholder="시뮬레이션 도착지" class="input">
+    <button class="button button-primary" onclick="startSimulation()">Start Simulation</button>
+
+    <!-- POI Search -->
+    <input id="poi-keyword" type="text" placeholder="POI 검색 (예: 레스토랑)" class="input">
+    <button class="button button-primary" onclick="searchPOI()">Search POI</button>
+
+    <!-- Audio Upload -->
+    <input type="file" id="audio-upload" accept="audio/*" class="input">
+    <button class="button button-primary" onclick="handleAudioUpload()">Analyze Audio</button>
+
+    <!-- Stop Navigation -->
+    <button class="button button-secondary" onclick="stopRealTimeNavigation()">Stop Navigation</button>
+  </div>
 
   <div id="route-messages">내비게이션 메시지가 여기에 표시됩니다.</div>
 
   <script>
-    let map, directionsService, directionsRenderer, placesService, currentPositionMarker, watchId, stepIndex = 0;
+    let map, directionsService, directionsRenderer, placesService, currentPositionMarker, watchId;
 
     function initMap() {
       map = new google.maps.Map(document.getElementById("map"), {
@@ -140,194 +148,11 @@
       placesService = new google.maps.places.PlacesService(map);
     }
 
-    function navigateWithStartAndEnd() {
-      const start = document.getElementById("start").value.trim();
-      const end = document.getElementById("end").value.trim();
-
-      if (!start || !end) {
-        alert("출발지와 도착지를 입력하세요.");
-        return;
-      }
-
-      directionsService.route(
-        {
-          origin: start,
-          destination: end,
-          travelMode: google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-          if (status === google.maps.DirectionsStatus.OK) {
-            directionsRenderer.setDirections(result);
-            displayRouteMessages(result.routes[0].legs[0].steps);
-          } else {
-            alert("경로를 찾을 수 없습니다.");
-          }
-        }
-      );
-    }
-
-    function displayRouteMessages(steps) {
-      const messageBox = document.getElementById("route-messages");
-      messageBox.style.display = "block";
-      stepIndex = 0;
-      updateMessage(steps[stepIndex]);
-
-      const interval = setInterval(() => {
-        stepIndex++;
-        if (stepIndex < steps.length) {
-          updateMessage(steps[stepIndex]);
-        } else {
-          clearInterval(interval);
-          messageBox.textContent = "도착지에 도달했습니다!";
-        }
-      }, 5000);
-    }
-
-    const betterClearHTMLTags = (strToSanitize) => {
-      let myHTML = new DOMParser()
-        .parseFromString(strToSanitize, 'text/html');
-      return myHTML.body.textContent || '';
-    }
-
-    function updateMessage(step) {
-      const messageBox = document.getElementById("route-messages");
-
-      messageBox.textContent = betterClearHTMLTags(`${step.instructions} (${step.distance.text})`);
-      console.log(messageBox.textContent);
-      map.setCenter(step.start_location); 
-      map.setZoom(16); 
-    }
-
-    function handleButtonPress(action) {
-      const panel = document.getElementById("control-panel");
-      panel.style.display = "none";
-      action();
-    }
-
-    function startSimulation() {
-      const destination = document.getElementById("destination-sim").value.trim();
-
-      if (!destination) {
-        alert("도착지를 입력하세요.");
-        return;
-      }
-
-      let simulatedLocation = { lat: 37.7749, lng: -122.4194 };
-
-      geocodeDestination(destination, (destinationCoords) => {
-        const interval = setInterval(() => {
-          simulatedLocation.lat += 0.0001;
-          simulatedLocation.lng += 0.0001;
-
-          if (!currentPositionMarker) {
-            currentPositionMarker = new google.maps.Marker({
-              position: simulatedLocation,
-              map: map,
-              title: "Simulated Position",
-            });
-          } else {
-            currentPositionMarker.setPosition(simulatedLocation);
-          }
-
-          directionsService.route(
-            {
-              origin: simulatedLocation,
-              destination: destinationCoords,
-              travelMode: google.maps.TravelMode.DRIVING,
-            },
-            (result, status) => {
-              if (status === google.maps.DirectionsStatus.OK) {
-                directionsRenderer.setDirections(result);
-              }
-            }
-          );
-
-          if (
-            Math.abs(simulatedLocation.lat - destinationCoords.lat()) < 0.0001 &&
-            Math.abs(simulatedLocation.lng - destinationCoords.lng()) < 0.0001
-          ) {
-            clearInterval(interval);
-            alert("시뮬레이션 완료");
-          }
-        }, 2000);
-      });
-    }
-
-    function geocodeDestination(address, callback) {
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ address }, (results, status) => {
-        if (status === google.maps.GeocoderStatus.OK) {
-          callback(results[0].geometry.location);
-        } else {
-          alert("주소를 찾을 수 없습니다: " + status);
-        }
-      });
-    }
-
-    function startRealTimeNavigation() {
-      const destination = document.getElementById("destination").value.trim();
-
-      if (!destination) {
-        alert("도착지를 입력하세요.");
-        return;
-      }
-
-      if (navigator.geolocation) {
-        watchId = navigator.geolocation.watchPosition(
-          (position) => {
-            const userLocation = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            };
-
-            if (!currentPositionMarker) {
-              currentPositionMarker = new google.maps.Marker({
-                position: userLocation,
-                map: map,
-                icon: { url: "https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png" },
-              });
-            } else {
-              currentPositionMarker.setPosition(userLocation);
-            }
-
-            map.setCenter(userLocation);
-            map.setZoom(16);
-
-            geocodeDestination(destination, (destinationCoords) => {
-              directionsService.route(
-                {
-                  origin: userLocation,
-                  destination: destinationCoords,
-                  travelMode: google.maps.TravelMode.DRIVING,
-                },
-                (result, status) => {
-                  if (status === google.maps.DirectionsStatus.OK) {
-                    directionsRenderer.setDirections(result);
-                  }
-                }
-              );
-            });
-          },
-          (error) => alert("위치를 가져올 수 없습니다: " + error.message),
-          { enableHighAccuracy: true }
-        );
-      } else {
-        alert("브라우저가 Geolocation을 지원하지 않습니다.");
-      }
-    }
-
-    function stopRealTimeNavigation() {
-      if (watchId) {
-        navigator.geolocation.clearWatch(watchId);
-        alert("실시간 내비게이션이 중지되었습니다.");
-        watchId = null;
-      }
-    }
-
     function searchPOI() {
-      const keyword = document.getElementById("keyword").value.trim();
+      const keyword = document.getElementById("poi-keyword").value.trim();
+
       if (!keyword) {
-        alert("키워드를 입력하세요.");
+        alert("Please enter a POI keyword to search.");
         return;
       }
 
@@ -346,10 +171,145 @@
             position: place.geometry.location,
             map: map,
           });
+          alert(`Found: ${place.name}`);
         } else {
-          alert("POI를 찾을 수 없습니다.");
+          alert("POI not found.");
         }
       });
+    }
+
+    function startSimulation() {
+      const start = document.getElementById("simulation-start").value.trim();
+      const end = document.getElementById("simulation-end").value.trim();
+
+      if (!start || !end) {
+        alert("Please provide both start and end points for simulation.");
+        return;
+      }
+
+      geocodeDestination(start, (startCoords) => {
+        geocodeDestination(end, (endCoords) => {
+          simulateMovement(startCoords, endCoords);
+        });
+      });
+    }
+
+    function simulateMovement(startCoords, endCoords) {
+      let simulatedLocation = { lat: startCoords.lat(), lng: startCoords.lng() };
+
+      const interval = setInterval(() => {
+        simulatedLocation.lat += (endCoords.lat() - simulatedLocation.lat) * 0.01;
+        simulatedLocation.lng += (endCoords.lng() - simulatedLocation.lng) * 0.01;
+
+        if (!currentPositionMarker) {
+          currentPositionMarker = new google.maps.Marker({
+            position: simulatedLocation,
+            map: map,
+            title: "Simulated Position",
+          });
+        } else {
+          currentPositionMarker.setPosition(simulatedLocation);
+        }
+
+        directionsService.route(
+          {
+            origin: simulatedLocation,
+            destination: endCoords,
+            travelMode: google.maps.TravelMode.DRIVING,
+          },
+          (result, status) => {
+            if (status === google.maps.DirectionsStatus.OK) {
+              directionsRenderer.setDirections(result);
+            }
+          }
+        );
+
+        if (
+          Math.abs(simulatedLocation.lat - endCoords.lat()) < 0.0001 &&
+          Math.abs(simulatedLocation.lng - endCoords.lng()) < 0.0001
+        ) {
+          clearInterval(interval);
+          alert("Simulation complete.");
+        }
+      }, 1000);
+    }
+
+    function geocodeDestination(address, callback) {
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ address }, (results, status) => {
+        if (status === google.maps.GeocoderStatus.OK) {
+          callback(results[0].geometry.location);
+        } else {
+          alert("Address not found: " + status);
+        }
+      });
+    }
+
+    async function handleAudioUpload() {
+      const audioInput = document.getElementById("audio-upload").files[0];
+
+      if (!audioInput) {
+        alert("Please upload an audio file.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("audio_path", audioInput);
+
+      try {
+        const response = await fetch("http://127.0.0.1:8000/analyze", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+        const classifyResult = data.classify_result;
+
+        alert(`Audio processed. Result: ${classifyResult}`);
+        if (classifyResult === "ROUTE") {
+          alert("Please enter start and end points for routing.");
+        } else if (classifyResult.split(",").length === 1) {
+          alert("Just search single points.");
+        }
+      } catch (err) {
+        alert(err); // traceback res integration!! 
+    }
+  }
+    function handleManualSearch() {
+      const start = document.getElementById("manual-start").value.trim();
+      const end = document.getElementById("manual-end").value.trim();
+
+      if (!start || !end) {
+        alert("Please provide both start and end points for manual search.");
+        return;
+      }
+
+      navigateWithStartAndEnd(start, end);
+    }
+
+    function navigateWithStartAndEnd(start, end) {
+      directionsService.route(
+        {
+          origin: start,
+          destination: end,
+          travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (status === google.maps.DirectionsStatus.OK) {
+            directionsRenderer.setDirections(result);
+          } else {
+            alert("Failed to find the route.");
+          }
+        }
+      );
+    }
+
+    function stopRealTimeNavigation() {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        alert("Navigation stopped.");
+        watchId = null;
+      }
     }
 
     document.getElementById("toggle-panel").addEventListener("click", () => {
@@ -358,36 +318,6 @@
     });
 
     window.onload = initMap;
-
-    <!-- Recording logic appended below (no changes above) -->
-    let recorder, audioBlob;
-    document.getElementById("record-button").addEventListener("click", function() {
-      if (recorder && recorder.getState() === "recording") {
-        recorder.stopRecording(() => {
-          audioBlob = recorder.getBlob();
-          const url = URL.createObjectURL(audioBlob);
-
-          const downloadLink = document.getElementById("download-link");
-          downloadLink.href = url;
-          downloadLink.download = "recording.wav";
-          downloadLink.textContent = "녹음 다운로드";
-          downloadLink.style.display = "block";
-        });
-
-        this.textContent = "녹음 시작";
-      } else {
-        navigator.mediaDevices
-          .getUserMedia({ audio: true })
-          .then((stream) => {
-            recorder = new RecordRTC(stream, { type: "audio" });
-            recorder.startRecording();
-            this.textContent = "녹음 중지";
-          })
-          .catch((err) => {
-            alert("오디오 녹음에 실패했습니다: " + err.message);
-          });
-      }
-    });
   </script>
 </body>
 </html>
