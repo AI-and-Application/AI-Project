@@ -133,7 +133,7 @@ Driving can be a stressful experience, especially in heavy traffic or during lon
   - **Whisper:** For accurate speech-to-text transcription.
   - **HuBERT:** For emotion recognition and analysis. (https://huggingface.co/HyunaZ/hubert_emotion)
   - **LangChain:** For managing conversational prompts and memory.
-  - **VITS:** For Emotional text-to-speech transcription.
+  - **VITS:** For Emotional text-to-speech transcription. (https://huggingface.co/HyunaZ/vits-kor-emotion)
   
 - **Data Analysis:**
   - **SK Network:** For real-time traffic, weather, and event data.
@@ -175,7 +175,7 @@ Driving can be a stressful experience, especially in heavy traffic or during lon
 - **Whisper:** Handles accurate and efficient speech-to-text transcription, enabling seamless voice interactions.
 - **HuBERT:** Provides reliable emotion recognition through advanced audio and language analysis.
 - **LangChain:** Manages complex conversational flows and memory to sustain meaningful and context-aware interactions.
-- **VITS:** For Emotional text-to-speech transcription.
+- **VITS:** For Emotional text-to-speech transcription. (https://huggingface.co/HyunaZ/vits-kor-emotion)
 
 ---
 
