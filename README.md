@@ -174,6 +174,7 @@ Driving can be a stressful experience, especially in heavy traffic or during lon
 - **Whisper:** Handles accurate and efficient speech-to-text transcription, enabling seamless voice interactions.
 - **HuBERT:** Provides reliable emotion recognition through advanced audio and language analysis.
 - **LangChain:** Manages complex conversational flows and memory to sustain meaningful and context-aware interactions.
+- **VITS:** For Emotional text-to-speech transcription.
 
 ---
 
