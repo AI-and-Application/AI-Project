@@ -1,5 +1,5 @@
 # 차비스 (Cha-Vis) 🚗💬
-
+* 소리를 충분히 크게 해서 들어주세요! *
 [![YouTube Video](https://img.youtube.com/vi/4YD__9bgbQQ/0.jpg)](https://youtu.be/4YD__9bgbQQ?si=sUWwX2uBwnkzj6A_)
 
 
