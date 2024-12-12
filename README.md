@@ -152,8 +152,9 @@ Driving can be a stressful experience, especially in heavy traffic or during lon
 ---
 
 ## Architecture
+![Full Architecture](https://github.com/user-attachments/assets/c7d11ff6-c098-4a5f-9d33-57009f809bd3)
 
-![Architecture Diagram](https://github.com/AI-and-Application/AI-Project/blob/main/architecture_design.png?raw=true)
+![AI Pipeline](https://github.com/user-attachments/assets/2d2f6a47-a59f-4703-a814-17de85d1fdf5)
 
 ### 1. Frontend (Flutter)
 
