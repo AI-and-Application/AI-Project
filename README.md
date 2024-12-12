@@ -131,8 +131,9 @@ Driving can be a stressful experience, especially in heavy traffic or during lon
   
 - **AI Models:**
   - **Whisper:** For accurate speech-to-text transcription.
-  - **HuBERT:** For emotion recognition and analysis.
+  - **HuBERT:** For emotion recognition and analysis. (https://huggingface.co/HyunaZ/hubert_emotion)
   - **LangChain:** For managing conversational prompts and memory.
+  - **VITS:** For Emotional text-to-speech transcription.
   
 - **Data Analysis:**
   - **SK Network:** For real-time traffic, weather, and event data.
