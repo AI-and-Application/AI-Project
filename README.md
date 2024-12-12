@@ -3,6 +3,8 @@
 
 [![YouTube Video](https://img.youtube.com/vi/4YD__9bgbQQ/0.jpg)](https://youtu.be/4YD__9bgbQQ?si=sUWwX2uBwnkzj6A_)
 
+[G06_Presentation_Final.pdf](https://github.com/user-attachments/files/18106665/G06_Presentation_Final.pdf)
+
 
 **차비스 (Cha-Vis)** is an innovative AI-driven personalized driving partner designed to enhance the driving experience by integrating real-time navigation with emotion control. Cha-Vis not only provides accurate directions but also analyzes user emotions through speech, offering empathetic interactions to promote safer and more comfortable driving.
 
