@@ -1,3 +1,7 @@
+#our Model
+https://huggingface.co/HyunaZ/hubert_emotion
+https://huggingface.co/HyunaZ/vits-kor-emotion
+
 # 차비스 (Cha-Vis) 🚗💬
 * 소리를 충분히 크게 해서 들어주세요!
 
