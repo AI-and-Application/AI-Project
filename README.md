@@ -1,5 +1,6 @@
 #our Model
 https://huggingface.co/HyunaZ/hubert_emotion
+
 https://huggingface.co/HyunaZ/vits-kor-emotion
 
 # 차비스 (Cha-Vis) 🚗💬
